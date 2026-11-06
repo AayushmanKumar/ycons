@@ -4,7 +4,7 @@
 
 Built at **ContextCon 04, IIT Kanpur** (theme: *Services, Replaced*), on [Crustdata](https://crustdata.com) company data.
 
-> **Status:** design and data validation done; product code in progress. See [Status](#status).
+> **Status:** working end to end on live Crustdata data. Bring your own API key; see [Run it](#run-it).
 
 ---
 
@@ -92,30 +92,66 @@ Wrong company matches at high confidence (`notion.so` → a 26-person company), 
 | Enterprise | Unlimited markets, client-list tracking, API | from ₹3,00,000/mo |
 | Agency | Many client workspaces, white-label reports, prospect feed | ₹1,00,000/mo + per client |
 
-## Status
+## Run it
 
-| Part | State |
-|---|---|
-| Competitor discovery from shared ad keywords | ✅ validated on 10 global companies and 2 markets (HR/payroll, monitoring) |
-| Signal pull (traffic, search, ads, postings, funding) | ✅ validated on 14 companies |
-| Data-problem checks | ✅ identified and documented; ⬜ not yet coded |
-| Scoring and verdict rule | ⬜ designed, not coded |
-| Watchers and webhooks | ⬜ not tested |
-| Pings and dashboard | ⬜ not built |
-
-## Setup (planned)
+You need Python 3.11+ and your own [Crustdata](https://crustdata.com) API key.
 
 ```bash
-cp .env.example .env        # add CRUSTDATA_API_KEY
-pip install -r requirements.txt
-python -m market_radar.app  # then open the local URL
+git clone <this repo> && cd ycons
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+.venv/bin/flask --app market_radar.app run
 ```
 
-These commands will work once the package is in place.
+Open http://127.0.0.1:5000. It opens on **Setup**:
+
+1. **Paste your Crustdata API key.** It's checked with a free balance lookup and saved only to the local `.env` (gitignored). Find it in the Crustdata dashboard under *API Keys*.
+2. **Enter your company's website** and, optionally, your clients' websites (one per line, or upload a CSV). Or press **Load the Rippling demo**: Rippling as your company, with Datadog, Canva and Stripe as clients.
+
+Setup takes about a minute and costs about **2 credits per company tracked** (roughly 60 for the demo). Lookups and job-posting counts are free.
+
+### The demo clock
+The dashboard has a clock. **Skip a week / Skip a month** moves it, and every number is recomputed from data that existed on that date. That way a weekly product can be shown in two minutes. Search and ad figures only exist from the day they were fetched (Crustdata keeps no history for them), and the dashboard says so.
+
+### Keeping it current
+- **Fetch latest** (top right) re-fetches every tracked company now.
+- The **weekly check**, e.g. from cron every Monday:
+  ```bash
+  .venv/bin/flask --app market_radar.app check
+  ```
+- Or set up from the command line:
+  ```bash
+  .venv/bin/flask --app market_radar.app setup rippling.com --clients datadoghq.com,canva.com,stripe.com
+  ```
+
+A company whose data Crustdata hasn't refreshed since the last check is skipped. Pings are stored, and the same ping is never sent twice.
+
+### Tests
+```bash
+.venv/bin/python -m unittest discover -s tests -t .
+```
+They use a fake Crustdata API, so they cost no credits.
+
+## How it's built
+
+| Module | Job |
+|---|---|
+| `crustdata.py` | API client: retries, clear errors (401/402/403/429), daily response cache |
+| `resolve.py` | Domain to verified company (rejects confident-but-wrong matches like `notion.so` → "Hustá") |
+| `competitors.py` | Candidates from shared ad keywords and search results, screened, every keep/drop reason logged; description-based fallback |
+| `signals.py` | Normalises each company into a record; computes measures as of any date |
+| `score.py` | Ranks each measure within the competitor set; 4 signal groups; 3-of-4 verdict rule |
+| `pings.py` | Rule-based pings: what changed, what it means, what to do, sources |
+| `view.py` | One dashboard builder for live data and the demo; drops product lines and in-market acquisitions |
+| `check.py` | Weekly check and Fetch latest; setup |
+| `store.py` | SQLite: markets, members, snapshots (our own history), pings |
+| `app.py`, `templates/`, `static/` | Flask UI, plain CSS and JS, server-rendered SVG charts |
+
+State lives in `data/radar.db`. Cached API responses live in `data/raw/`. Both are gitignored.
 
 ## Limits
 
-- Pings are only as fast as Crustdata's data updates (hiring and staff changes quickly, website traffic monthly).
-- Competitor discovery works best for companies that advertise online. Others fall back to same industry and similar size.
-- Search data is current values only. rivl stores snapshots to build history over time.
+- Not real-time: pings are as fast as Crustdata's updates (companies refresh every 1–30 days; website traffic is monthly). Every ping shows its data date.
+- Competitor discovery works best for companies that advertise online. Others fall back to companies with a similar description and size, which is less precise (it can include consultancies).
+- Crustdata's acquisition data is noisy, so a company is only dropped as "acquired" when the buyer is another company in the same market. Paycor is handled by a known-acquisitions list.
+- Search and ad numbers are current values only. rivl stores a snapshot each check to build history over time.
 - Crustdata gives **counts** of search phrases won and lost, not the phrases themselves.
