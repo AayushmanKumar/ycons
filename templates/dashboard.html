@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Market Radar · {{ k.me.name }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+{% macro verdict(v) -%}
+  <span class="verdict {{ v }}">
+    <span class="icon" aria-hidden="true">{{ {'rising': '▲', 'falling': '▼', 'mixed': '◆'}[v] }}</span>{{ v|capitalize }}
+  </span>
+{%- endmacro %}
+{% macro qs(extra) -%}
+  {{ url_for('dashboard', asof=extra.get('asof', asof.isoformat()), view=extra.get('view', f.view), focus=extra.get('focus', f.focus), verdict=f.verdict, kind=f.kind, range=f.range) }}
+{%- endmacro %}
+
+{% macro ping_card(p) %}
+  <article class="ping {{ p.kind }}">
+    <div class="ping-head">
+      <span class="kind"><span class="icon" aria-hidden="true">{{ {'threat': '!', 'opportunity': '↗', 'watch': '○'}[p.kind] }}</span>{{ {'threat': 'Threat', 'opportunity': 'Opportunity', 'watch': 'Watch'}[p.kind] }}</span>
+      <a class="tag" href="{{ qs({'view': 'you'} if p.track == 'you' else {'view': 'clients', 'focus': p.market}) }}">{{ 'Your market' if p.track == 'you' else 'Client · ' ~ p.client }}</a>
+    </div>
+    <h3>{{ p.title }}</h3>
+    <p>{{ p.meaning }}</p>
+    <p class="action"><strong>Do:</strong> {{ p.action }}</p>
+    <details><summary>Sources</summary>
+      <ul class="sources">{% for s in p.sources %}<li><span>{{ s.field }}</span><strong>{{ s.value }}</strong></li>{% endfor %}</ul>
+      <p class="muted">Data as of {{ p.sources[0].fetched|short }}</p>
+    </details>
+    <footer class="muted">First seen {{ p.first_seen|day }}</footer>
+  </article>
+{% endmacro %}
+
+<header class="topbar">
+  <div class="brand"><span class="mark" aria-hidden="true"></span>Market Radar</div>
+  <div class="viewing">Viewing as <strong>{{ k.me.name }}</strong> <span class="muted">· {{ vm.self_domain }}</span></div>
+  <form method="post" action="{{ url_for('fetch_latest', **request.args) }}" class="fetch">
+    <button class="btn primary" type="submit">Fetch latest</button>
+  </form>
+</header>
+
+<main>
+  {% with msgs = get_flashed_messages() %}{% for m in msgs %}<p class="flash">{{ m }}</p>{% endfor %}{% endwith %}
+
+  <section class="clock" aria-label="Demo clock">
+    <div class="clock-date">
+      <span class="eyebrow">{{ 'Live data' if asof >= live else 'Demo date' }}</span>
+      <span class="date">{{ asof|day }}</span>
+    </div>
+    <div class="clock-status">
+      <span class="pulse {% if new_count %}on{% endif %}" aria-hidden="true"></span>
+      Weekly check · <strong>{{ new_count }} new ping{{ '' if new_count == 1 else 's' }}</strong> this week
+      <span class="muted">· next check {{ next_check|short }}</span>
+    </div>
+    <nav class="clock-controls" aria-label="Move the demo clock">
+      <a class="btn" href="{{ qs({'asof': prev_week.isoformat()}) }}" {% if asof <= demo_start %}aria-disabled="true"{% endif %}>← Week</a>
+      <a class="btn" href="{{ qs({'asof': next_week.isoformat()}) }}" {% if asof >= live %}aria-disabled="true"{% endif %}>Skip a week →</a>
+      <a class="btn" href="{{ qs({'asof': next_month.isoformat()}) }}" {% if asof >= live %}aria-disabled="true"{% endif %}>Skip a month ⇥</a>
+      <a class="btn ghost" href="{{ qs({'asof': live.isoformat()}) }}">Live data</a>
+      <a class="btn ghost" href="{{ qs({'asof': demo_start.isoformat()}) }}">Reset</a>
+    </nav>
+    {% if asof < live %}
+      <p class="note">Search, ad and traffic-source numbers exist only from {{ live|short }}, because Crustdata keeps no history for them. Until then, verdicts use visitors, hiring, followers and funding.</p>
+    {% endif %}
+  </section>
+
+  <section class="kpis" aria-label="Your position">
+    <div class="tile">
+      <span class="label">Your verdict</span>
+      <span class="value">{{ verdict(k.me.verdict) }}</span>
+      <span class="sub">{{ k.me.pattern or 'No strong pattern' }} · {{ k.need or 0 }} of {{ k.families_scored }} signal groups must agree</span>
+    </div>
+    <div class="tile">
+      <span class="label">Visitors per month</span>
+      <span class="value">{{ k.me.visitors|num }}</span>
+      <span class="sub"><span class="delta {{ 'up' if (k.me.visitors_12m or 0) >= 0 else 'down' }}">{{ k.me.visitors_12m|pct }}</span> over 12 months · {{ k.visitors_12m_vs|pct }} vs rivals' median</span>
+      {{ charts.sparkline(k.me.visitor_series, true, 160, 32) }}
+    </div>
+    <div class="tile">
+      <span class="label">Share of market visitors</span>
+      <span class="value">{{ '%.1f'|format(k.share) }}%</span>
+      <span class="sub">#{{ k.share_rank }} of {{ k.n }} in your market</span>
+    </div>
+    <div class="tile">
+      <span class="label">Hiring, last 3 months</span>
+      <span class="value">{{ k.me.postings_last3 }}</span>
+      <span class="sub"><span class="delta {{ 'up' if (k.me.postings_change or 0) >= 0 else 'down' }}">{{ k.me.postings_change|pct }}</span> vs previous 3 months</span>
+    </div>
+    <div class="tile">
+      <span class="label">Google Ads per month</span>
+      {% if k.me.ads_budget is not none %}
+        <span class="value">{{ k.me.ads_budget|money }}</span>
+        <span class="sub">Rivals' median {{ k.ads_median|money }}</span>
+      {% else %}
+        <span class="value muted">–</span>
+        <span class="sub">Available from {{ live|short }}</span>
+      {% endif %}
+    </div>
+  </section>
+
+  <div class="layout">
+    <div class="main-col">
+      <div class="toolbar">
+        <nav class="tabs" aria-label="Track">
+          <a href="{{ qs({'view': 'you'}) }}" class="tab {{ 'active' if f.view == 'you' }}" {% if f.view == 'you' %}aria-current="page"{% endif %}>
+            Your market <span class="muted">{{ you.self_name }} vs {{ you.rows|length - 1 }}</span>
+          </a>
+          <a href="{{ qs({'view': 'clients'}) }}" class="tab {{ 'active' if f.view == 'clients' }}" {% if f.view == 'clients' %}aria-current="page"{% endif %}>
+            Client accounts <span class="muted">{{ accounts|length }}</span>
+            {% if client_new %}<span class="dot-badge" title="{{ client_new }} new">{{ client_new }}</span>{% endif %}
+          </a>
+        </nav>
+        <form class="filters" method="get" action="{{ url_for('dashboard') }}" data-autosubmit>
+          <input type="hidden" name="asof" value="{{ asof.isoformat() }}">
+          <input type="hidden" name="view" value="{{ f.view }}">
+          <input type="hidden" name="focus" value="{{ f.focus }}">
+          <label>Verdict
+            <select name="verdict">
+              {% for v, l in [('all','All'),('rising','Rising'),('falling','Falling'),('mixed','Mixed')] %}<option value="{{ v }}" {{ 'selected' if f.verdict == v }}>{{ l }}</option>{% endfor %}
+            </select>
+          </label>
+          <label>Pings
+            <select name="kind">
+              {% for v, l in [('all','All'),('threat','Threats'),('opportunity','Opportunities'),('watch','Watch')] %}<option value="{{ v }}" {{ 'selected' if f.kind == v }}>{{ l }}</option>{% endfor %}
+            </select>
+          </label>
+          <label>History
+            <select name="range">
+              <option value="12" {{ 'selected' if f.range == 12 }}>12 months</option>
+              <option value="24" {{ 'selected' if f.range == 24 }}>24 months</option>
+            </select>
+          </label>
+          <noscript><button class="btn" type="submit">Apply</button></noscript>
+        </form>
+      </div>
+
+      {% if f.view == 'clients' %}
+      <section class="card accounts" aria-label="Client accounts">
+        <table class="accounts-table">
+          <thead><tr>
+            <th>Client</th><th>Account</th><th>vs its rivals</th><th>Visitors, client vs rivals' median</th>
+            <th class="num">Rivals</th><th class="num">Prospects</th><th class="num">New</th>
+          </tr></thead>
+          <tbody>
+          {% for a in accounts %}
+            <tr class="{{ 'selected' if a.key == f.focus }}" data-href="{{ qs({'view': 'clients', 'focus': a.key}) }}">
+              <td><a class="co" href="{{ qs({'view': 'clients', 'focus': a.key}) }}">{{ a.name }}</a><span class="muted dom">{{ a.domain }}</span></td>
+              <td><span class="call {{ a.call[1] }}">{{ a.call[0] }}</span><span class="pattern">{{ verdict(a.me.verdict) }}</span></td>
+              <td>
+                {% if a.vs_rivals is not none %}
+                  <span class="delta {{ 'up' if a.vs_rivals >= 0 else 'down' }}">{{ a.vs_rivals|pct }}</span>
+                  <span class="muted sm">visitor growth vs median rival</span>
+                {% else %}–{% endif %}
+              </td>
+              <td>{{ a.spark }}</td>
+              <td class="num">{{ a.n_rivals }} <span class="muted sm">▲{{ a.rising }} ▼{{ a.falling }}</span></td>
+              <td class="num">{{ a.prospects }}</td>
+              <td class="num">{% if a.new %}<span class="dot-badge">{{ a.new }}</span>{% else %}<span class="muted">0</span>{% endif %}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </section>
+      {% endif %}
+
+      {% if panel %}
+      {% set m = panel.m %}
+      <section class="panel" id="market-{{ m.key }}">
+        <header class="panel-head">
+          <div>
+            <span class="eyebrow">{{ 'Your competitors' if m.role == 'you' else "Client's competitors" }}</span>
+            <h2>{{ "Your market" if m.role == 'you' else m.self_name ~ "'s market" }}</h2>
+            <p class="muted">{{ m.self_name }} vs {{ m.rows|length - 1 }} competitors · {{ verdict(panel.me.verdict) }}{% if panel.me.pattern %} <span class="muted">· {{ panel.me.pattern }}</span>{% endif %}</p>
+          </div>
+          {% if panel.account %}
+            <div class="account {{ panel.account[1] }}">
+              <span class="eyebrow">Account call</span>
+              <strong>{{ panel.account[0] }}</strong>
+              <span class="muted">{{ {'Upsell': 'Winning its market: pitch an expansion', 'Protect': 'Losing ground: protect before renewal', 'Steady': 'No strong signal either way'}[panel.account[0]] }}</span>
+            </div>
+          {% endif %}
+        </header>
+
+        <div class="grid-2-1">
+          <figure class="card">
+            <figcaption><h3>Website visitors</h3><span class="muted">Indexed to 100 at the start · <span class="key self"></span>{{ m.self_name }} <span class="key"></span>competitors · hover a row below to highlight it</span></figcaption>
+            {{ panel.line }}
+            <details class="tableview"><summary>Show as table</summary>
+              <table><thead><tr><th>Company</th><th class="num">Start</th><th class="num">Latest</th><th class="num">Index</th></tr></thead>
+              <tbody>{% for t in panel.line_table %}<tr><td>{{ t.name }}</td><td class="num">{{ t.start|num }}</td><td class="num">{{ t.end|num }}</td><td class="num">{{ t.index }}</td></tr>{% endfor %}</tbody></table>
+            </details>
+          </figure>
+          <figure class="card">
+            <figcaption><h3>Share of visitors</h3><span class="muted">Latest month</span></figcaption>
+            {{ panel.bars }}
+          </figure>
+        </div>
+
+        <div class="grid-1-1">
+          <figure class="card">
+            <figcaption><h3>Hiring vs demand</h3><span class="muted">Who's growing, and who's spending to grow</span></figcaption>
+            {{ panel.scatter }}
+          </figure>
+          <figure class="card glance">
+            <figcaption><h3>Market at a glance</h3><span class="muted">{{ m.rows|length - 1 }} competitors, judged against each other</span></figcaption>
+            {% set c = panel.counts %}
+            {% set total = (c.rising + c.mixed + c.falling) or 1 %}
+            <div class="segbar" role="img" aria-label="{{ c.rising }} rising, {{ c.mixed }} mixed, {{ c.falling }} falling">
+              {% if c.rising %}<span class="seg rising" style="flex: {{ c.rising }}">{{ c.rising }}</span>{% endif %}
+              {% if c.mixed %}<span class="seg mixed" style="flex: {{ c.mixed }}">{{ c.mixed }}</span>{% endif %}
+              {% if c.falling %}<span class="seg falling" style="flex: {{ c.falling }}">{{ c.falling }}</span>{% endif %}
+            </div>
+            <p class="seg-legend"><span class="sw rising"></span>Rising <span class="sw mixed"></span>Mixed <span class="sw falling"></span>Falling</p>
+            {% if panel.moves %}
+              <ul class="moves">
+                {% for name, pattern, v in panel.moves %}
+                  <li><span class="co-sm">{{ name }}</span> {{ verdict(v) }}{% if pattern %} <span class="muted">· {{ pattern }}</span>{% endif %}</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="muted">No competitor stands out on this date.</p>
+            {% endif %}
+            <details class="discovery-wrap">
+              <summary>How we found these competitors · {{ panel.kept }} kept, {{ panel.dropped }} dropped</summary>
+              <ul class="discovery">
+                {% for d in m.discovery %}
+                  <li class="{{ 'kept' if d.kept else 'dropped' }}">
+                    <span class="icon" aria-hidden="true">{{ '✓' if d.kept else '✕' }}</span>
+                    <span class="dom">{{ d.domain }}</span>
+                    <span class="muted">{{ d.reason }}</span>
+                  </li>
+                {% endfor %}
+              </ul>
+            </details>
+          </figure>
+        </div>
+
+        <div class="card table-card">
+          <table class="scoreboard">
+            <thead><tr>
+              <th>Company</th><th>Verdict</th><th>Signal groups</th>
+              <th class="num">Visitors/mo</th><th class="num">12 mo</th><th class="num">3 mo</th>
+              <th class="num">Hiring 3 mo</th><th class="num">Ads/mo</th><th>Last raise</th><th></th>
+            </tr></thead>
+            <tbody>
+            {% for r in panel.rows %}
+              <tr class="{{ 'self' if r.is_self }}" data-series="{{ r.name }}">
+                <td><span class="co">{{ r.name }}</span><span class="muted dom">{{ r.domain }}</span></td>
+                <td>{{ verdict(r.verdict) }}{% if r.pattern %}<span class="pattern">{{ r.pattern }}</span>{% endif %}</td>
+                <td>
+                  <div class="meters">
+                  {% for fam, v in r.families.items() %}
+                    <span class="meter" tabindex="0" data-tip='{{ [labels[fam], ("%d%% rank in this market"|format(v * 100)) if v is not none else "No data on this date"]|tojson|forceescape }}'>
+                      <span class="fill" style="width: {{ ((v or 0) * 100)|round }}%"></span>{% if v is none %}<span class="none"></span>{% endif %}
+                    </span>
+                  {% endfor %}
+                  </div>
+                </td>
+                <td class="num"><span class="spark-cell">{{ charts.sparkline(r.visitor_series, r.is_self) }}{{ r.visitors|num }}</span></td>
+                <td class="num">{{ r.visitors_12m|pct }}</td>
+                <td class="num">{{ r.visitors_3m|pct }}</td>
+                <td class="num">{{ r.postings_change|pct }} <span class="muted">({{ r.postings_last3 }})</span></td>
+                <td class="num">{{ r.ads_budget|money }}</td>
+                <td>{{ r.last_raise|monthyear if r.last_raise else '–' }}{% if r.last_round %}<span class="muted round">{{ r.last_round|replace('_', ' ')|capitalize }}</span>{% endif %}</td>
+                <td>{% for code, why in r.flags %}<span class="flag" tabindex="0" data-tip='{{ ["Data note", why]|tojson|forceescape }}' aria-label="{{ why }}">!</span>{% endfor %}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          <p class="legend muted">Signal groups, left to right: Demand · Search position · Marketing push · Company momentum. Bars show rank within this market.</p>
+        </div>
+      </section>
+      {% else %}
+        <p class="empty card">No market to show.</p>
+      {% endif %}
+    </div>
+
+    <aside class="feed" aria-label="Pings">
+      <h2>Pings <span class="count">{{ feed|length }}</span></h2>
+      {% set fresh = feed|selectattr('is_new')|list %}
+      {% set older = feed|rejectattr('is_new')|list %}
+      {% if fresh %}<h4 class="feed-group">New this week</h4>{% for p in fresh %}{{ ping_card(p) }}{% endfor %}{% endif %}
+      {% if older %}<h4 class="feed-group">Earlier</h4>{% for p in older %}{{ ping_card(p) }}{% endfor %}{% endif %}
+      {% if not feed %}<p class="empty">Quiet so far. Skip ahead to see pings arrive as new data lands.</p>{% endif %}
+    </aside>
+  </div>
+</main>
+
+<div class="tooltip" role="tooltip" hidden></div>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
