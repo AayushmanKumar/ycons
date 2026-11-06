@@ -1,1 +1,6 @@
 ContextCon 04_ IIT Kanpur · Builder Handbook.pdf
+data/raw/
+.env
+.venv/
+__pycache__/
+*.db
