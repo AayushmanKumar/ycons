@@ -2,12 +2,10 @@
 
 Candidates: companies bidding on the same Google ads (paid_seo), then those
 ranking for the same searches (organic_seo). Never competitors.all_domains,
-which is look-alike names. Fallback: same industry, similar size.
+which is look-alike names. Fallback: companies doing similar work at a similar size.
 """
 from . import crustdata, resolve, store
-
-# Fields fetched for every company. Shared with signals so the daily cache is reused.
-COMPANY_FIELDS = ["basic_info", "headcount", "web_traffic", "seo", "followers", "funding", "competitors"]
+from .signals import COMPANY_FIELDS  # shared so the daily cache is reused
 
 SMALL_SIZES = {"1-10", "2-10", "11-50", "51-200"}
 MAX_COMPETITORS = 10

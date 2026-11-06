@@ -1,0 +1,15 @@
+/* Setup page only. Uses the tokens defined in style.css. */
+.setup-steps { display: flex; flex-direction: column; gap: var(--s3); }
+.setup fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--s3); }
+.setup fieldset[disabled] { opacity: 0.45; }
+.setup .locked h3 { color: var(--muted); }
+.step { display: inline-grid; place-items: center; width: 24px; height: 24px; margin-right: 8px; border-radius: 50%;
+  background: var(--ink); color: var(--canvas); font-size: 13px; font-weight: 700; vertical-align: 1px; }
+.locked .step { background: var(--dust); color: var(--ink); }
+.connected { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.connected .ok { color: var(--good-text); font-weight: 700; }
+.inline-form { display: flex; gap: var(--s1); margin-top: var(--s1); }
+.inline-form input { flex: 1; font: inherit; color: var(--ink); background: var(--white); border: 1px solid var(--dust);
+  border-radius: var(--r-xs); padding: 8px 10px; }
+.demo-form { border-top: 1px solid var(--border); padding-top: var(--s3); }
+.demo-form fieldset { gap: var(--s2); align-items: flex-start; }

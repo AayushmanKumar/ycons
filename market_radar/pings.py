@@ -40,10 +40,44 @@ def _ping(kind, r, title, meaning, action, keys, fetched, market):
         "action": action,
         "sources": _sources(r, keys, fetched),
         "market": market["key"],
+        "company_id": r.get("id"),
         "track": market["role"],
         "client": None if market["role"] == "you" else market["self_name"],
-        "key": f"{r['domain']}:{kind}:{fetched[:7]}",  # dedupe key: company + event + period
+        # Dedupe key: market + company + event + month. A situation that persists
+        # is re-raised at most once a month; a change event uses its own key.
+        "key": f"{market['key']}:{r['domain']}:{kind}:{fetched[:7]}",
     }
+
+
+def funding_round(market, r, prev_funding, cur_funding, fetched):
+    """A new raise since the last snapshot. Rivals raising = threat; clients/prospects = opportunity."""
+    new_date = (cur_funding or {}).get("last_date")
+    if not new_date or new_date == (prev_funding or {}).get("last_date"):
+        return None
+    rnd = ((cur_funding or {}).get("last_round") or "funding round").replace("_", " ")
+    is_rival = market["role"] == "you" and not r["is_self"]
+    p = _ping(
+        "threat" if is_rival else "opportunity", r, f"{r['name']} just raised a {rnd}",
+        ("New money usually means more hiring and ad spend in the next two quarters."
+         if is_rival else "Fresh budget: a good moment to talk about expanding."),
+        ("Expect a push. Check your biggest accounts' renewal dates now." if is_rival
+         else "Reach out this week while the budget is being planned."),
+        ["last_raise", "postings_change", "visitors_3m"], fetched, market)
+    p["key"] = f"{market['key']}:{r['domain']}:funding:{new_date[:10]}"
+    return p
+
+
+def new_competitor(market, domain, name, fetched):
+    """A company that has started bidding on the same Google ads."""
+    r = {"name": name, "domain": domain, "id": None}
+    p = _ping(
+        "watch", r, f"New competitor: {name}",
+        f"{name} has started bidding on the same Google ads as {market['self_name']}.",
+        "Take a look at its pricing and positioning. It's now tracked in this market.",
+        [], fetched, market)
+    p["sources"] = [{"field": "competitors · bids on the same Google ads", "value": domain, "fetched": fetched}]
+    p["key"] = f"{market['key']}:{domain}:new_competitor"
+    return p
 
 
 def for_market(market, fetched):

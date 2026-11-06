@@ -88,6 +88,13 @@ def save_market(db, key, role, self_id, members):
              for m in members])
 
 
+def delete_markets(db):
+    """Forget all markets (companies, snapshots and pings are kept)."""
+    with db:
+        db.execute("DELETE FROM market_members")
+        db.execute("DELETE FROM markets")
+
+
 def markets(db):
     return [dict(r) for r in db.execute("SELECT * FROM markets ORDER BY role DESC, key")]
 
@@ -110,6 +117,18 @@ def latest_snapshot(db, company_id, as_of=None):
         args.append(as_of)
     row = db.execute(sql + " ORDER BY fetched_at DESC LIMIT 1", args).fetchone()
     return {**dict(row), "payload": json.loads(row["payload"])} if row else None
+
+
+def earliest_snapshot(db, company_id):
+    row = db.execute("SELECT * FROM snapshots WHERE company_id = ? ORDER BY fetched_at LIMIT 1",
+                     (company_id,)).fetchone()
+    return {**dict(row), "payload": json.loads(row["payload"])} if row else None
+
+
+def last_fetch(db):
+    """Date (YYYY-MM-DD) of the most recent snapshot, or None."""
+    row = db.execute("SELECT MAX(fetched_at) AS f FROM snapshots").fetchone()
+    return row["f"][:10] if row and row["f"] else None
 
 
 def add_snapshot(db, company_id, payload, source_updated_at, fetched_at=None):

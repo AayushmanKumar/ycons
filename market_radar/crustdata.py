@@ -38,6 +38,46 @@ def api_key():
     return key
 
 
+def has_api_key():
+    try:
+        return bool(api_key())
+    except CrustdataError:
+        return False
+
+
+def check_key(key):
+    """Validate a key with the free credits endpoint. Returns the balance, or raises CrustdataError."""
+    req = urllib.request.Request(BASE_URL + "/account/credits", method="GET", headers={
+        "authorization": f"Bearer {key}", "x-api-version": API_VERSION, "accept": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return (json.loads(resp.read()).get("account") or {}).get("credits")
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403):
+            raise CrustdataError(e.code, "That key was rejected by Crustdata.") from None
+        raise CrustdataError(e.code, "Crustdata didn't respond as expected. Try again.") from None
+    except urllib.error.URLError as e:
+        raise CrustdataError(0, f"Couldn't reach Crustdata: {e.reason}") from None
+
+
+def save_api_key(key):
+    """Write the key to .env (gitignored) and use it for this process."""
+    env = ROOT / ".env"
+    lines = env.read_text().splitlines() if env.exists() else []
+    lines = [l for l in lines if l.partition("=")[0].strip() != "CRUSTDATA_API_KEY"]
+    env.write_text("\n".join(lines + [f"CRUSTDATA_API_KEY={key}"]) + "\n")
+    env.chmod(0o600)
+    os.environ["CRUSTDATA_API_KEY"] = key
+
+
+def credits():
+    """Current balance (free call), or None if it can't be read."""
+    try:
+        return call("/account/credits", method="GET", use_cache=False)["account"]["credits"]
+    except (CrustdataError, KeyError, TypeError):
+        return None
+
+
 def _cache_path(method, path, body):
     raw = json.dumps([method, path, body], sort_keys=True).encode()
     return CACHE_DIR / date.today().isoformat() / f"{hashlib.sha256(raw).hexdigest()[:24]}.json"

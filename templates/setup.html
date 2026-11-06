@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ brand }} · Setup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sofia+Sans:wght@300..800&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='setup.css') }}">
+</head>
+<body>
+<header class="nav-wrap">
+  <nav class="nav" aria-label="Main">
+    <a class="brand" href="{{ url_for('dashboard') }}" aria-label="{{ brand }} home">
+      <svg class="mark" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="5" fill="currentColor"/><path d="M3.5 17.5C5 8 18 3 25 9" fill="none" stroke="var(--signal-light)" stroke-width="1.5" stroke-linecap="round"/><circle cx="25" cy="9" r="1.8" fill="var(--signal-light)"/></svg>
+      <span class="wordmark">{{ brand }}</span>
+    </a>
+    <div class="nav-links">
+      {% if current %}<a class="nav-link" href="{{ url_for('dashboard', src='live') }}">Your dashboard</a>{% endif %}
+      {% if has_demo %}<a class="nav-link" href="{{ url_for('dashboard', src='demo') }}">Saved demo</a>{% endif %}
+      <a class="nav-link active" aria-current="page" href="{{ url_for('setup_page') }}">Setup</a>
+    </div>
+  </nav>
+</header>
+
+<main class="setup">
+  {% with msgs = get_flashed_messages() %}{% for m in msgs %}<p class="flash">{{ m }}</p>{% endfor %}{% endwith %}
+
+  <section class="hero">
+    <div class="hero-main">
+      <span class="eyebrow">Setup</span>
+      <h1 class="date">{{ 'Who should we watch?' if has_key else 'Connect Crustdata to start' }}</h1>
+      <p class="clock-status">{{ brand }} runs on your own Crustdata account. Connect it, then tell us your company and
+        the clients you sell to. We find each one's real competitors (companies bidding on the same Google ads),
+        check every match, and start watching them.</p>
+    </div>
+  </section>
+
+  <div class="grid-2-1">
+    <div class="setup-steps">
+      <section class="card setup-form" aria-labelledby="step1">
+        <h3 id="step1"><span class="step">1</span> Crustdata API key</h3>
+        {% if has_key %}
+          <p class="connected"><span class="ok" aria-hidden="true">✓</span> Connected · key ending <code>{{ key_hint }}</code>
+            {% if balance is not none %}<span class="muted">· {{ '{:,.0f}'.format(balance) }} credits left</span>{% endif %}</p>
+          <details><summary class="muted sm">Use a different key</summary>
+            <form method="post" action="{{ url_for('save_key') }}" class="inline-form">
+              <input name="api_key" type="password" required placeholder="Paste a new key" autocomplete="off" spellcheck="false" aria-label="New Crustdata API key">
+              <button class="btn secondary" type="submit">Replace</button>
+            </form>
+          </details>
+        {% else %}
+          <form method="post" action="{{ url_for('save_key') }}" class="setup-form">
+            <label class="field">
+              <span class="label">Paste your key</span>
+              <input name="api_key" type="password" required placeholder="cd_…" autocomplete="off" spellcheck="false">
+            </label>
+            <p class="muted sm">Find it in your Crustdata dashboard under <strong>API Keys</strong>. We check it with a free
+              balance lookup, then keep it only in this machine's <code>.env</code> file (never committed, never shown again).</p>
+            <div><button class="btn primary" type="submit">Connect</button></div>
+          </form>
+        {% endif %}
+      </section>
+
+      <section class="card setup-form {{ '' if has_key else 'locked' }}" aria-labelledby="step2" {% if not has_key %}aria-disabled="true"{% endif %}>
+        <h3 id="step2"><span class="step">2</span> Your company and clients</h3>
+        <form method="post" enctype="multipart/form-data" class="setup-form busy-form">
+          <fieldset {% if not has_key %}disabled{% endif %}>
+            <label class="field">
+              <span class="label">Your company's website</span>
+              <input name="domain" required placeholder="rippling.com" autocomplete="off" spellcheck="false">
+            </label>
+            <label class="field">
+              <span class="label">Your clients' websites <span class="muted">(optional, one per line or comma-separated)</span></span>
+              <textarea name="clients" rows="4" placeholder="datadoghq.com&#10;canva.com&#10;stripe.com" spellcheck="false"></textarea>
+            </label>
+            <label class="field">
+              <span class="label">…or upload a CSV <span class="muted">(any column of domains)</span></span>
+              <input type="file" name="clients_csv" accept=".csv,text/csv">
+            </label>
+            <p class="muted sm">About 2 credits per company tracked, roughly 20 per market. Lookups and job-posting
+              counts are free. This replaces anything currently set up.</p>
+            <div><button class="btn primary" type="submit" data-busy="Finding competitors… (about a minute)">Start tracking</button></div>
+          </fieldset>
+        </form>
+        <form method="post" class="demo-form busy-form">
+          <fieldset {% if not has_key %}disabled{% endif %}>
+            <input type="hidden" name="action" value="demo">
+            <p class="sm"><strong>Just exploring?</strong> Load the demo: {{ demo_company }} as your company, with
+              {{ demo_clients|join(', ') }} as clients. About 60 credits.</p>
+            <button class="btn secondary" type="submit" data-busy="Loading the demo… (about a minute)">Load the Rippling demo</button>
+          </fieldset>
+        </form>
+      </section>
+    </div>
+
+    <aside class="card">
+      <h3>Currently tracked</h3>
+      {% if current %}
+        <ul class="moves">
+          {% for c in current %}
+            <li><span class="co-sm">{{ c.name }}</span> <span class="muted">{{ c.domain }} · {{ c.n }} competitors · {{ 'your market' if c.role == 'you' else 'client' }}</span></li>
+          {% endfor %}
+        </ul>
+        <p class="muted sm">Last fetched {{ last_fetch or 'never' }}. Run the weekly check with
+          <code>flask --app market_radar.app check</code>, or press Fetch latest on the dashboard.</p>
+      {% else %}
+        <p class="muted">Nothing yet.{% if has_demo %} Meanwhile, the <a class="link" href="{{ url_for('dashboard', src='demo') }}">saved demo</a> shows what you'll get.{% endif %}</p>
+      {% endif %}
+    </aside>
+  </div>
+</main>
+<script>
+  // Setup takes about a minute (one lookup per competitor): show progress on the button.
+  document.querySelectorAll(".busy-form").forEach((form) =>
+    form.addEventListener("submit", (e) => {
+      const b = e.target.querySelector("button[data-busy]");
+      if (b) { b.textContent = b.dataset.busy; b.setAttribute("aria-disabled", "true"); }
+    })
+  );
+</script>
+</body>
+</html>

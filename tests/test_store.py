@@ -6,6 +6,7 @@ from market_radar import store
 class StoreTest(unittest.TestCase):
     def setUp(self):
         self.db = store.connect(":memory:")
+        self.addCleanup(self.db.close)
         store.upsert_company(self.db, 1, "Rippling", "rippling.com", "1001-5000")
         store.upsert_company(self.db, 2, "Deel", "deel.com", "5001-10000")
 
