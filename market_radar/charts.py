@@ -122,9 +122,19 @@ def scatter(rows, width=360, height=250):
         out.append(f'<line class="{"base" if t == 0 else "grid"}" y1="{T}" y2="{T + ph}" x1="{X(t):.1f}" x2="{X(t):.1f}"/>')
         out.append(f'<text class="tick" x="{X(t):.1f}" y="{height - 14}" text-anchor="middle">{t:+g}%</text>')
     out.append(f'<text class="axis-title" x="{L + pw}" y="{height - 2}" text-anchor="end">Hiring, last 3 months vs previous →</text>')
+    # Data wins: skip a quadrant label if a point or its name label would overlap it.
+    CHAR_W = 6.2  # approx width of one 12px glyph in viewBox units
+    boxes = []
+    for r, xv, yv in zip(pts, xs, ys):
+        cx, cy = X(xv), Y(yv)
+        boxes.append((cx - 7, cy - 9, cx + 10 + len(r["name"]) * CHAR_W, cy + 7))
     q = [("Growing and hiring", L + pw - 4, T + 12, "end"), ("Growing, lean", L + 4, T + 12, "start"),
          ("Hiring into a decline", L + pw - 4, T + ph - 6, "end"), ("Shrinking and cutting", L + 4, T + ph - 6, "start")]
     for label, qx, qy, anchor in q:
+        w = len(label) * CHAR_W
+        x0 = qx - w if anchor == "end" else qx
+        if any(x0 < bx1 and x0 + w > bx0 and qy - 11 < by1 and qy + 3 > by0 for bx0, by0, bx1, by1 in boxes):
+            continue
         out.append(f'<text class="quadrant" x="{qx:.1f}" y="{qy:.1f}" text-anchor="{anchor}">{label}</text>')
     for r, xv, yv in sorted(zip(pts, xs, ys), key=lambda t: t[0]["is_self"]):
         cx, cy = X(xv), Y(yv)

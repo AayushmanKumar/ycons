@@ -448,3 +448,55 @@ tbody tr { transition: background-color .12s ease; }
   .tile { padding: 20px; border-radius: var(--r-chip); }
   .tile .value { font-size: 28px; }
 }
+
+/* ============================== Setup page ============================== */
+.setup .grid-2-1 { align-items: start; }
+.setup-form { display: flex; flex-direction: column; gap: var(--s3); }
+.field { display: flex; flex-direction: column; gap: var(--s1); }
+.field .label { font-weight: 600; }
+.field input:not([type="file"]), .field textarea {
+  font: inherit; color: var(--ink); background: var(--white); border: 1px solid var(--dust);
+  border-radius: var(--r-xs); padding: 10px 12px; }
+.field input:focus, .field textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.setup code { font-size: 12px; background: var(--surface-2); padding: 1px 6px; border-radius: var(--r-xs); }
+
+/* ============================== UI polish pass ============================== */
+/* Filters sit left when there's no section title, so they read as the controls for what follows */
+.toolbar { justify-content: flex-start; }
+.toolbar:has(.toolbar-title) { justify-content: space-between; }
+.panel { margin-top: 0; }
+.panel-head { padding-top: var(--s1); }
+
+/* Disabled pill: clearly inactive in both themes */
+.btn[aria-disabled="true"] { color: var(--muted); border-color: var(--border); background: transparent; opacity: 0.6; }
+
+/* "Mixed" segment: neutral in both themes (was glaring light gray on dark) */
+:root { --seg-mixed: var(--dust); --seg-mixed-ink: var(--charcoal); }
+@media (prefers-color-scheme: dark) { :root { --seg-mixed: #45443f; --seg-mixed-ink: var(--ink); } }
+.seg.mixed { background: var(--seg-mixed); color: var(--seg-mixed-ink); }
+.sw.mixed { background: var(--seg-mixed); }
+
+/* Charts don't balloon when a card goes full width (tablet) */
+.chart.line { max-width: 720px; }
+.chart.scatter { max-width: 560px; }
+
+/* Wide tables scroll inside their card on small screens instead of being cut off */
+.accounts, .table-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.accounts-table, .scoreboard { min-width: 640px; }
+
+/* Setup form: inputs follow the system radii and pill controls */
+.field input:not([type="file"]), .field textarea {
+  min-height: 44px; padding: 12px 18px; border: 1.5px solid var(--border);
+  border-radius: var(--r-chip); background: var(--nav-surface); }
+.field input:not([type="file"]) { border-radius: var(--r-pill); }
+.field input:not([type="file"]):hover, .field textarea:hover { border-color: var(--dust); }
+.field input:focus, .field textarea:focus { outline: none; border-color: var(--ink); }
+.field input[type="file"] { font: inherit; font-size: 14px; color: var(--ink-2); }
+.field input[type="file"]::file-selector-button {
+  font: inherit; font-size: 15px; font-weight: 450; margin-right: 12px; padding: 8px 20px; min-height: 40px; cursor: pointer;
+  color: var(--ink); background: var(--nav-surface); border: 1.5px solid var(--ink); border-radius: var(--r-btn); }
+.field input[type="file"]::file-selector-button:hover { background: var(--surface-2); }
+
+@media (max-width: 1023px) {
+  .kpis .tile:first-child { grid-column: 1 / -1; }
+}

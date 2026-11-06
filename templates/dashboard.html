@@ -17,7 +17,7 @@
   </span>
 {%- endmacro %}
 {% macro qs(extra) -%}
-  {{ url_for('dashboard', asof=extra.get('asof', asof.isoformat()), view=extra.get('view', f.view), focus=extra.get('focus', f.focus), verdict=f.verdict, kind=f.kind, range=f.range) }}
+  {{ url_for('dashboard', src=extra.get('src', f.src), asof=extra.get('asof', asof.isoformat()), view=extra.get('view', f.view), focus=extra.get('focus', f.focus), verdict=f.verdict, kind=f.kind, range=f.range) }}
 {%- endmacro %}
 
 {% macro ping_card(p) %}
@@ -48,7 +48,8 @@
       <a href="{{ qs({'view': 'clients'}) }}" class="nav-link {{ 'active' if f.view == 'clients' }}" {% if f.view == 'clients' %}aria-current="page"{% endif %}>
         Client accounts{% if client_new %} <span class="dot-badge" title="{{ client_new }} new">{{ client_new }}</span>{% endif %}
       </a>
-      <span class="nav-context">Viewing as <strong>{{ k.me.name }}</strong> <span class="muted">{{ vm.self_domain }}</span></span>
+      <span class="nav-context">Viewing as <strong>{{ k.me.name }}</strong> <span class="muted">{{ vm.self_domain }}{% if f.src == 'demo' %} · demo{% endif %}</span></span>
+      <a href="{{ url_for('setup_page') }}" class="nav-link">Setup</a>
       <form method="post" action="{{ url_for('fetch_latest', **request.args) }}" class="fetch">
         <button class="btn primary" type="submit">Fetch latest</button>
       </form>
@@ -64,7 +65,7 @@
 
   <section class="hero" aria-label="Demo clock">
     <div class="hero-main">
-      <span class="eyebrow">{{ 'Live data' if asof >= live else 'Demo date' }}</span>
+      <span class="eyebrow">{{ 'Latest data' if asof >= live else ('Demo date' if f.src == 'demo' else 'Looking back to') }}</span>
       <h1 class="date">{{ asof|day }}</h1>
       <p class="clock-status">
         <span class="pulse {% if new_count %}on{% endif %}" aria-hidden="true"></span>
@@ -125,13 +126,14 @@
   <div class="layout">
     <div class="main-col">
       <div class="toolbar">
+        {% if f.view == 'clients' %}
         <div class="toolbar-title">
-          {% if f.view == 'clients' %}
-            <span class="eyebrow">Your clients' competitors</span>
-            <span class="toolbar-sub">{{ accounts|length }} client accounts · pick one to open its market</span>
-          {% endif %}
+          <span class="eyebrow">Your clients' competitors</span>
+          <span class="toolbar-sub">{{ accounts|length }} client accounts · pick one to open its market</span>
         </div>
+        {% endif %}
         <form class="filters" method="get" action="{{ url_for('dashboard') }}" data-autosubmit>
+          <input type="hidden" name="src" value="{{ f.src }}">
           <input type="hidden" name="asof" value="{{ asof.isoformat() }}">
           <input type="hidden" name="view" value="{{ f.view }}">
           <input type="hidden" name="focus" value="{{ f.focus }}">
@@ -328,8 +330,11 @@
       <div>
         <h4>Data</h4>
         <ul>
+          <li><span>{{ 'Demo sample' if f.src == 'demo' else 'Live' }} · last fetched {{ live|day }}</span></li>
+          {% if f.src == 'demo' and has_live %}<li><a href="{{ qs({'src': 'live', 'asof': ''}) }}">Switch to live data</a></li>{% endif %}
+          {% if f.src == 'live' and has_demo %}<li><a href="{{ qs({'src': 'demo', 'asof': ''}) }}">Switch to the demo</a></li>{% endif %}
+          <li><a href="{{ url_for('setup_page') }}">Setup</a></li>
           <li><a href="https://crustdata.com" rel="noopener" target="_blank">Crustdata <span aria-hidden="true">↗</span><span class="sr-only">(opens in a new tab)</span></a></li>
-          <li><span>Last fetched {{ live|day }}</span></li>
         </ul>
       </div>
       <div>
