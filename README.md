@@ -1,6 +1,6 @@
-# Market Radar
+# rivl
 
-**An analyst that never sleeps.** Market Radar watches your competitors, and your clients' competitors, and pings you as soon as one of them raises money, ramps up ads, starts or stops hiring, or starts losing customers, with what it probably means and what to do.
+**An analyst that never sleeps.** rivl watches your competitors, and your clients' competitors, and pings you as soon as one of them raises money, ramps up ads, starts or stops hiring, or starts losing customers, with what it probably means and what to do.
 
 Built at **ContextCon 04, IIT Kanpur** (theme: *Services, Replaced*), on [Crustdata](https://crustdata.com) company data.
 
@@ -12,7 +12,7 @@ Built at **ContextCon 04, IIT Kanpur** (theme: *Services, Replaced*), on [Crustd
 
 Companies find out a competitor is beating them months too late, usually when their own sales drop. Some pay competitive-intelligence analysts or research firms to track rivals by hand, slowly and patchily. Almost nobody tracks how **their clients** are doing against **the clients' own competitors**, even though that decides whether a client grows, cuts back or leaves.
 
-Market Radar does that job continuously.
+rivl does that job continuously.
 
 ## What it does
 
@@ -117,5 +117,5 @@ These commands will work once the package is in place.
 
 - Pings are only as fast as Crustdata's data updates (hiring and staff changes quickly, website traffic monthly).
 - Competitor discovery works best for companies that advertise online. Others fall back to same industry and similar size.
-- Search data is current values only. Market Radar stores snapshots to build history over time.
+- Search data is current values only. rivl stores snapshots to build history over time.
 - Crustdata gives **counts** of search phrases won and lost, not the phrases themselves.

@@ -4,7 +4,7 @@ Guidance for coding agents (Claude Code, Codex, etc.) working in this repo.
 
 ## What we're building
 
-**Market Radar** watches a company's competitors, and its clients' competitors, and pings the user as soon as one of them does something important (raises money, ramps up ads, starts or stops hiring, loses website visitors). Each ping says what changed, what it probably means, what to do, and where every number came from.
+**rivl** (Python package: `market_radar`) watches a company's competitors, and its clients' competitors, and pings the user as soon as one of them does something important (raises money, ramps up ads, starts or stops hiring, loses website visitors). Each ping says what changed, what it probably means, what to do, and where every number came from.
 
 The product overview, example pings and current status are in [`README.md`](README.md).
 

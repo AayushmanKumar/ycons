@@ -1,4 +1,4 @@
-// Market Radar: tooltips, line-chart crosshair, auto-submitting filters. No framework.
+// rivl: tooltips, line-chart crosshair, auto-submitting filters, mobile menu. No framework.
 (() => {
   const tip = document.querySelector(".tooltip");
 
@@ -98,3 +98,13 @@ document.querySelectorAll(".panel").forEach((panel) => {
     tr.addEventListener("mouseleave", off);
   });
 });
+
+// Mobile nav: the floating pill opens a spacious overlay of the same links
+(() => {
+  const nav = document.querySelector(".nav");
+  const btn = nav?.querySelector(".menu-toggle");
+  if (!btn) return;
+  const set = (open) => { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", String(open)); };
+  btn.addEventListener("click", () => set(!nav.classList.contains("open")));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") set(false); });
+})();

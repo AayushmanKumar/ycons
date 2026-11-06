@@ -1,4 +1,4 @@
-"""Market Radar web app (UI phase: runs on the saved sample with a demo clock)."""
+"""rivl web app (UI phase: runs on the saved sample with a demo clock)."""
 from datetime import date, timedelta
 from functools import lru_cache
 from statistics import median
@@ -9,6 +9,13 @@ from . import charts, sample, score
 
 app = Flask(__name__, template_folder="../templates", static_folder="../static")
 app.secret_key = "dev-only"  # flash messages only; no user data
+
+BRAND = "rivl"  # product name shown in the UI; change it here only
+
+
+@app.context_processor
+def inject_brand():
+    return {"brand": BRAND}
 
 @app.template_filter("pct")
 def fmt_pct(v, digits=0):

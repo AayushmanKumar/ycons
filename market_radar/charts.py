@@ -48,7 +48,7 @@ def _nice_ticks(lo, hi, target=4):
     return ticks
 
 
-def line_index(rows, n_months, width=640, height=230):
+def line_index(rows, n_months, width=500, height=240):
     """Monthly visitors indexed to 100 at the window start. Self = accent, rest gray."""
     months = sorted({m for r in rows for m, _ in r["visitor_series"]})[-n_months:]
     if len(months) < 2:
@@ -100,7 +100,7 @@ def line_index(rows, n_months, width=640, height=230):
     return Markup("".join(out)), table
 
 
-def scatter(rows, width=420, height=230):
+def scatter(rows, width=360, height=250):
     """Hiring change (x) vs visitors 12-month change (y). Quadrants tell the story."""
     pts = [r for r in rows if r.get("postings_change") is not None and r.get("visitors_12m") is not None]
     if len(pts) < 2:
