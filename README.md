@@ -109,6 +109,31 @@ Open http://127.0.0.1:5000. It opens on **Setup**:
 
 Setup takes about a minute and costs about **2 credits per company tracked** (roughly 60 for the demo). Lookups and job-posting counts are free.
 
+## Using rivl
+
+### The dashboard, top to bottom
+| Part | What it shows | What to do with it |
+|---|---|---|
+| **Clock** | The date the dashboard is showing, how many new pings this week's check found, and when the next check runs | Use **Skip a week / Skip a month** to move forward, **Jump to live data** for today, **Reset demo** to start over |
+| **Your position** (5 tiles) | Your verdict, visitors per month, share of the market's visitors, hiring, Google Ads spend, each compared with your rivals | A quick read on whether you're gaining or losing ground |
+| **Your market** tab | You against your competitors: a visitors chart (you in blue, rivals in gray), share-of-visitors bars, a hiring-vs-demand chart, "market at a glance", and a scoreboard | Hover a scoreboard row to highlight that company's line. Open **How we found these competitors** to see who was kept or dropped, and why |
+| **Client accounts** tab | One row per client: an account call (**Upsell / Protect / Steady**), how the client is growing against its rivals, prospects, new pings | Click a client to open its market below |
+| **Pings** (right) | New this week, then earlier. Each says what changed, what it probably means, what to do, and its sources | Open **Sources** to see the exact field, value and date behind every number |
+| **Filters** | Verdict (rising, falling, mixed), ping type (threats, opportunities, watch), 12 or 24 months of history | They apply to everything on the page |
+
+**Verdict labels:** ▲ Rising and ▼ Falling mean at least 3 of the 4 signal groups agree. ◆ Mixed means they don't. A **!** next to a company opens a note about a data problem, for example "search data looks broken for this brand".
+
+### A 2-minute demo
+1. **Setup → Load the Rippling demo.** Wait about a minute.
+2. On the dashboard, press **Reset demo** to go back to July, then **Skip a month** a few times. Pings arrive as new data lands: a client winning its market, a rival making a push, a rival losing ground.
+3. Open a ping's **Sources** to show where each number comes from.
+4. Switch to **Client accounts** and click a client to see its market and the account call.
+5. Open **How we found these competitors** to show the checks, for example Paycor dropped as acquired and tiny product lines dropped.
+6. Press **Fetch latest** to re-fetch live data. Companies Crustdata hasn't refreshed are skipped, and nothing is pinged twice.
+
+### Your own company
+**Setup** → enter your website and your clients' websites → **Start tracking**. This replaces whatever was tracked before. Come back to Setup at any time to change it, replace the API key, or check your credit balance.
+
 ### The demo clock
 The dashboard has a clock. **Skip a week / Skip a month** moves it, and every number is recomputed from data that existed on that date. That way a weekly product can be shown in two minutes. Search and ad figures only exist from the day they were fetched (Crustdata keeps no history for them), and the dashboard says so.
 
